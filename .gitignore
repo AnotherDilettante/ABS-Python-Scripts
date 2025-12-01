@@ -1,0 +1,18 @@
+# Ignore the virtual environment
+venv/
+.env
+
+# Ignore Python cache files
+__pycache__/
+*.pyc
+
+# Ignore output data and charts (Since we can regenerate them)
+abs_data_output/
+abs_charts_output/
+.readabs_cache/
+
+# Ignore old files
+zzz - old py/
+
+# Ignore system files
+.DS_Store
