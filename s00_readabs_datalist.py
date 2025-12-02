@@ -67,11 +67,16 @@ ABS_DATASETS = [
         "tables": {
             # OPTION 2: Series IDs
             "87520033": {
-                "filename": "Building_Activity_Table33_StartsCompletions.csv",
+                "filename": "Building_Activity_Table33_Starts.csv",
                 "plot_ids": [
                     "A83793840W",  # Total dwelling starts
                     "A83794056K",  # Total unit starts
-                    "A83801544L",  # Total house starts
+                    "A83801544L"   # Total house starts
+                ]
+            },
+            "87520037": {
+                "filename": "Building_Activity_Table37_Completions.csv",
+                "plot_ids": [
                     "A83801545R",  # Total dwelling completions
                     "A83794057L",  # Total unit completions
                     "A83793841X"   # Total house completions
@@ -154,8 +159,8 @@ ABS_DATASETS = [
                 "filename": "LabourForce_Table1_Unemployment_sa.csv",
                 "plot_ids": [
                     "A84423050A",  # Unemployment rate, persons
-                    "A2133252X",   # Participation rate, persons
-                    "A84423051C"   # Labour force total
+                    "A84423051C",  # Participation rate, persons
+                    "A84423047L"   # Labour force total
                 ]
             },
             "6202022": {

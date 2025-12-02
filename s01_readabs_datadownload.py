@@ -1,4 +1,5 @@
 # s01_readabs_datadownload.py
+
 import readabs as ra
 import pandas as pd
 import os
@@ -55,13 +56,14 @@ def fetch_and_save_dataset(dataset_info):
         # 3. LOOP THROUGH TABLES
         for key, value in target_tables.items():
             
-            # --- HANDLE CONFIG FORMAT (String vs Dict) ---
+            # --- HANDLE CONFIG FORMAT ---
+            target_ids = []
             if isinstance(value, dict):
                 filename = value['filename']
-                # We ignore 'plot_ids' here, s01 just saves the file
+                target_ids = value.get('plot_ids', [])
             else:
                 filename = value
-            # ---------------------------------------------
+            # ----------------------------
 
             if key not in all_tables_dict:
                 print(f"  [X] Table '{key}' not found. Skipping.")
@@ -69,7 +71,28 @@ def fetch_and_save_dataset(dataset_info):
 
             df = all_tables_dict[key]
 
-            # Apply Descriptions
+            # --- FILTER COLUMNS (NEW) ---
+            # If the user provided specific IDs, we discard everything else right now.
+            if target_ids:
+                # Ensure headers are clean
+                df.columns = df.columns.str.strip()
+                
+                # Find which of the requested IDs actually exist in this table
+                found_cols = [c for c in df.columns if c in target_ids]
+                
+                if found_cols:
+                    # Filter the dataframe to keep ONLY these columns
+                    df = df[found_cols]
+                    
+                    # Check if we missed any
+                    missing = set(target_ids) - set(found_cols)
+                    if missing:
+                        print(f"      [!] Warning: Could not find these IDs: {missing}")
+                else:
+                    print(f"      [!] Warning: No match for requested IDs. Saving full table instead.")
+            # -----------------------------
+
+            # Apply Descriptions (Renaming columns)
             try:
                 new_col_names = []
                 for col_id in df.columns:
@@ -95,7 +118,9 @@ def fetch_and_save_dataset(dataset_info):
             output_path = os.path.join(OUTPUT_DIRECTORY, filename)
             filtered_df.to_csv(output_path)
             
-            print(f"  [✓] Saved: {filename}")
+            # Helper message to confirm filtering
+            saved_cols_count = len(filtered_df.columns)
+            print(f"  [✓] Saved: {filename} ({saved_cols_count} series)")
 
     except Exception as e:
         print(f"  [!] Failed to process {name}: {e}")
