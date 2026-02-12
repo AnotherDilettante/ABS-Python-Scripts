@@ -5,6 +5,7 @@ import pandas as pd
 import os
 import sys
 import logging
+import argparse
 from contextlib import redirect_stdout, redirect_stderr
 import io
 
@@ -14,6 +15,59 @@ try:
 except ImportError:
     print("Error: Could not find 's00_readabs_datalist.py'.")
     sys.exit(1)
+
+# --- CLI ARGUMENT PARSER ---
+def parse_args():
+    parser = argparse.ArgumentParser(
+        description='Download ABS data from specified catalogues'
+    )
+    parser.add_argument(
+        '--freq',
+        choices=['Monthly', 'Quarterly', 'Annual'],
+        help='Only download datasets with this frequency'
+    )
+    parser.add_argument(
+        '--cat',
+        help='Only download specific catalogue ID (e.g., 6401.0)'
+    )
+    parser.add_argument(
+        '--list',
+        action='store_true',
+        dest='list_only',
+        help='List available datasets without downloading'
+    )
+    return parser.parse_args()
+
+
+def filter_datasets(datasets, freq=None, cat=None):
+    """Filter datasets based on frequency and/or catalogue ID."""
+    filtered = datasets
+
+    if freq:
+        filtered = [d for d in filtered if d.get('frequency', '').lower() == freq.lower()]
+
+    if cat:
+        filtered = [d for d in filtered if d['cat_id'] == cat]
+
+    return filtered
+
+
+def list_datasets(datasets):
+    """Print a formatted list of available datasets."""
+    print("\n--- AVAILABLE ABS DATASETS ---\n")
+    print(f"{'Cat ID':<12} {'Frequency':<12} {'Name':<40} {'Tables'}")
+    print("-" * 90)
+
+    for ds in datasets:
+        cat_id = ds['cat_id']
+        freq = ds.get('frequency', 'Unknown')
+        name = ds['name']
+        table_count = len(ds['tables'])
+
+        print(f"{cat_id:<12} {freq:<12} {name:<40} {table_count} table(s)")
+
+    print(f"\nTotal: {len(datasets)} dataset(s)")
+    print("-" * 90)
 
 def get_rows_to_keep(frequency, years):
     freq = str(frequency).lower()
@@ -120,13 +174,35 @@ def fetch_and_save_dataset(dataset_info):
             
             # Helper message to confirm filtering
             saved_cols_count = len(filtered_df.columns)
-            print(f"  [✓] Saved: {filename} ({saved_cols_count} series)")
+            print(f"  [OK] Saved: {filename} ({saved_cols_count} series)")
 
     except Exception as e:
         print(f"  [!] Failed to process {name}: {e}")
 
 if __name__ == "__main__":
-    print(f"--- ABS BATCH DOWNLOAD STARTED (History: {HISTORY_YEARS} Years) ---")
-    for item in ABS_DATASETS:
+    args = parse_args()
+
+    # Filter datasets based on CLI arguments
+    datasets_to_process = filter_datasets(ABS_DATASETS, freq=args.freq, cat=args.cat)
+
+    if not datasets_to_process:
+        print("No datasets match the specified filters.")
+        sys.exit(0)
+
+    # List mode: show datasets and exit
+    if args.list_only:
+        list_datasets(datasets_to_process)
+        sys.exit(0)
+
+    # Download mode
+    filter_info = []
+    if args.freq:
+        filter_info.append(f"Freq: {args.freq}")
+    if args.cat:
+        filter_info.append(f"Cat: {args.cat}")
+    filter_str = f" ({', '.join(filter_info)})" if filter_info else ""
+
+    print(f"--- ABS BATCH DOWNLOAD STARTED (History: {HISTORY_YEARS} Years){filter_str} ---")
+    for item in datasets_to_process:
         fetch_and_save_dataset(item)
     print("\n--- BATCH DOWNLOAD COMPLETE ---")

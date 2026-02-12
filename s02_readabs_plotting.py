@@ -28,7 +28,47 @@ COLOR_PRIMARY = '#ED3144' # Strong Red
 COLOR_SECONDARY = '#000000' # Black
 COLOR_GRID = '#e0e0e0'
 
-def create_abs_chart(df, title, subtitle, filename_prefix, columns_to_plot):
+
+def apply_calc_transformation(df, calc_type, frequency):
+    """
+    Apply percentage change transformations based on calc_type and frequency.
+
+    calc_type options:
+        - "raw": No transformation (default)
+        - "yoy": Year-on-year % change
+        - "qoq": Quarter-on-quarter % change (quarterly data)
+        - "mom": Month-on-month % change (monthly data)
+    """
+    if calc_type == "raw" or calc_type is None:
+        return df, False  # No transformation, not a percentage
+
+    freq_lower = str(frequency).lower()
+
+    if calc_type == "yoy":
+        # Year-on-year: 12 periods for monthly, 4 for quarterly
+        if "monthly" in freq_lower:
+            periods = 12
+        elif "quarterly" in freq_lower:
+            periods = 4
+        else:
+            periods = 4  # Default to quarterly
+        transformed = df.pct_change(periods=periods) * 100
+        return transformed, True
+
+    elif calc_type == "qoq":
+        # Quarter-on-quarter (1 period for quarterly data)
+        transformed = df.pct_change(periods=1) * 100
+        return transformed, True
+
+    elif calc_type == "mom":
+        # Month-on-month (1 period for monthly data)
+        transformed = df.pct_change(periods=1) * 100
+        return transformed, True
+
+    return df, False  # Unknown calc_type, return unchanged
+
+
+def create_abs_chart(df, title, subtitle, filename_prefix, columns_to_plot, is_percentage=False):
     """
     Generates a line chart for the given ABS DataFrame.
     """
@@ -67,7 +107,8 @@ def create_abs_chart(df, title, subtitle, filename_prefix, columns_to_plot):
     ax.spines['right'].set_visible(False)
     ax.grid(axis='y', linestyle=':', color=COLOR_GRID)
 
-    ax.set_ylabel("Value", fontweight='semibold')
+    y_label = "% Change" if is_percentage else "Value"
+    ax.set_ylabel(y_label, fontweight='semibold')
     ax.set_xlabel("Date", fontweight='semibold')
 
     # Title & Subtitle
@@ -96,21 +137,27 @@ if __name__ == "__main__":
 
     for dataset in ABS_DATASETS:
         dataset_name = dataset['name']
+        frequency = dataset.get('frequency', 'Quarterly')
         tables = dataset['tables']
-        
+
         for key, value in tables.items():
-            
-            # --- DETERMINE FILENAME & SERIES IDS ---
+
+            # --- DETERMINE FILENAME, SERIES IDS, DISPLAY TITLE, CALC TYPE ---
             target_ids = []
+            display_title = None
+            calc_type = "raw"
+
             if isinstance(value, dict):
                 csv_filename = value['filename']
                 target_ids = value.get('plot_ids', [])
+                display_title = value.get('display_title')
+                calc_type = value.get('calc_type', 'raw')
             else:
                 csv_filename = value
-            # ---------------------------------------
+            # ----------------------------------------------------------------
 
             full_csv_path = os.path.join(OUTPUT_DIRECTORY, csv_filename)
-            
+
             if not os.path.exists(full_csv_path):
                 continue
 
@@ -119,12 +166,13 @@ if __name__ == "__main__":
                 df = pd.read_csv(full_csv_path, index_col=0)
                 # Convert Index to Date
                 df.index = pd.to_datetime(df.index)
-                
-                if df.empty: continue
+
+                if df.empty:
+                    continue
 
                 # --- COLUMN SELECTION LOGIC ---
                 cols_to_plot = []
-                
+
                 # Case A: User provided specific IDs
                 if target_ids:
                     for tid in target_ids:
@@ -133,10 +181,10 @@ if __name__ == "__main__":
                             if tid in col:
                                 cols_to_plot.append(col)
                                 found = True
-                                break 
+                                break
                         if not found:
                             print(f"  [!] Could not find Series ID '{tid}' in {csv_filename}")
-                
+
                 # Case B: No IDs provided -> Default to first column
                 else:
                     cols_to_plot = [df.columns[0]]
@@ -146,13 +194,30 @@ if __name__ == "__main__":
                     print(f"  [!] No valid columns found to plot for {csv_filename}")
                     continue
 
-                title = f"{dataset_name}: {csv_filename.replace('.csv', '').replace('_', ' ')}"
-                
-                # FIX: Use .max() here too for Pylance
-                latest_date_str = df.index.max().strftime('%B %Y')
+                # --- APPLY PERCENTAGE CHANGE TRANSFORMATION ---
+                plot_df = df[cols_to_plot].copy()
+                plot_df, is_percentage = apply_calc_transformation(plot_df, calc_type, frequency)
+
+                # Drop NaN rows created by pct_change
+                plot_df = plot_df.dropna()
+
+                if plot_df.empty:
+                    print(f"  [!] No data after transformation for {csv_filename}")
+                    continue
+                # -----------------------------------------------
+
+                # --- GENERATE TITLE ---
+                if display_title:
+                    title = display_title
+                else:
+                    # Fallback to auto-generated title
+                    title = f"{dataset_name}: {csv_filename.replace('.csv', '').replace('_', ' ')}"
+                # ----------------------
+
+                latest_date_str = plot_df.index.max().strftime('%B %Y')
                 subtitle = f"Latest Data: {latest_date_str}"
-                
-                create_abs_chart(df, title, subtitle, csv_filename, cols_to_plot)
+
+                create_abs_chart(plot_df, title, subtitle, csv_filename, cols_to_plot, is_percentage)
 
             except Exception as e:
                 print(f"Failed to plot {csv_filename}: {e}")
