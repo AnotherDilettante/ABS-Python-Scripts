@@ -2,7 +2,7 @@
 
 ## What this is
 
-`s05_dashboard.py` is an interactive web dashboard that runs locally in your browser. It reads the CSV files your pipeline already produces in `abs_data_output/` and lets you toggle datasets, series, and date ranges on the fly. No data leaves your machine.
+`dashboard.py` is an interactive web dashboard that runs locally in your browser. It reads the CSV files your pipeline already produces in `abs_data_output/` and lets you toggle datasets, series, and date ranges on the fly. No data leaves your machine.
 
 ## First-time setup (5 minutes)
 
@@ -22,29 +22,37 @@ pip install streamlit plotly
 
 That's it for dependencies. Everything else (pandas, etc.) you already have.
 
-### 2. Drop the file in
+### 2. Verify file structure
 
-Copy `s05_dashboard.py` into your ABS project folder alongside your other scripts:
+Your ABS project folder should look like this:
 
 ```
 ABS-Project/
-├── s00_readabs_datalist.py
-├── s01_readabs_datadownload.py
-├── s02_readabs_plotting.py
-├── s05_dashboard.py              <-- new
+├── start.py                     # TUI control center
+├── config.py                    # Dataset configuration
+├── download.py                  # Data downloader
+├── generate_charts.py           # Static chart generator
+├── dashboard.py                 # Interactive dashboard
 ├── abs_data_output/
 ├── abs_charts_output/
 └── ...
 ```
 
-It needs to be in the same folder as `s00_readabs_datalist.py` so it can import your dataset registry for the grouping and names.
+The dashboard needs to be in the same folder as `config.py` so it can import your dataset registry for grouping and names.
 
 ### 3. Make sure you have data
 
 If you haven't already, run your download script first:
 
 ```
-python s01_readabs_datadownload.py
+python download.py
+```
+
+You can also use CLI flags to selectively download:
+```
+python s01_readabs_datadownload.py --list          # List available datasets
+python s01_readabs_datadownload.py --freq Monthly  # Download monthly datasets only
+python s01_readabs_datadownload.py --cat 6401.0    # Download specific catalogue
 ```
 
 The dashboard reads from `abs_data_output/`. No CSVs = nothing to display.
@@ -54,7 +62,7 @@ The dashboard reads from `abs_data_output/`. No CSVs = nothing to display.
 From your ABS project folder:
 
 ```
-streamlit run s05_dashboard.py
+streamlit run dashboard.py
 ```
 
 Your default browser will open automatically at `http://localhost:8501`. If it doesn't, just open that URL manually.
@@ -77,7 +85,7 @@ Press `Ctrl+C` in the terminal where it's running.
 
 The dashboard reads CSVs live on each interaction. Your workflow is:
 
-1. Run `python s01_readabs_datadownload.py` (refreshes the CSVs)
+1. Run `python download.py` (refreshes the CSVs)
 2. Refresh the dashboard in your browser (or it auto-detects changes)
 
 No need to restart Streamlit.
@@ -85,7 +93,7 @@ No need to restart Streamlit.
 ## Troubleshooting
 
 **"No data found" error**
-→ Your `abs_data_output/` folder is empty. Run s01 first.
+→ Your `abs_data_output/` folder is empty. Run download.py first.
 
 **"ModuleNotFoundError: No module named 'streamlit'"**
 → You installed it in a different Python environment. Make sure you're using the same Python/pip that has your other ABS packages.
@@ -96,5 +104,5 @@ No need to restart Streamlit.
 **Port 8501 already in use**
 → Another Streamlit instance is running. Either stop it or run with a different port:
 ```
-streamlit run s05_dashboard.py --server.port 8502
+streamlit run dashboard.py --server.port 8502
 ```

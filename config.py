@@ -1,12 +1,12 @@
-# s00_readabs_datalist.py
+# config.py
 
 # --- CONFIGURATION ---
 HISTORY_YEARS = 10  # How many years of data to keep
-OUTPUT_DIRECTORY = "abs_data_output" 
+OUTPUT_DIRECTORY = "abs_data_output"
 
 # --- DATASET REGISTRY ---
 # Strictly matched to the "Relevant data" column in your CSV.
-# Keys are generated based on the Table numbers listed (e.g. Table 33 -> 8752033).
+# Keys generated based on Table numbers listed (e.g. Table 33 -> 8752033).
 
 ABS_DATASETS = [
 
@@ -47,8 +47,8 @@ ABS_DATASETS = [
                 "display_title": "Consumer Price Index - All Groups",
                 "calc_type": "raw",  # Already % change in source data
                 "plot_ids": [
-                    "A130393721F",  # All groups CPI change from month in previous year
-                    "A130393722J"  # All groups CPI change from previous month
+                    "A130393721F",  # All groups CPI change prev year's mth
+                    "A130393722J"   # All groups CPI change from prev mth
                 ]
             },
             "640106": {
@@ -56,9 +56,9 @@ ABS_DATASETS = [
                 "display_title": "Consumer Price Index - Underlying Measures",
                 "calc_type": "yoy",  # Year-on-year % change
                 "plot_ids": [
-                    "A130607784C", # Weight Average, All Groups CPI
-                    "A130400383T", # Weight Average, Trimmed Mean
-                    "A130400614R"  # Weight Average, Weighted Median
+                    "A130607784C",  # Weight Avg, All Groups CPI
+                    "A130400383T",  # Weight Average, Trimmed Mean
+                    "A130400614R"   # Weight Av, Weighted Median
                 ]
             }
         }
@@ -185,7 +185,7 @@ ABS_DATASETS = [
             },
             "6202022": {
                 "filename": "LabourForce_Table22_Underemployment_sa.csv",
-                "display_title": "Labour Force - Underemployment & Underutilisation",
+                "display_title": "Labour Force - Underem p& Underutil",
                 "calc_type": "raw",  # Already rates in source data
                 "plot_ids": [
                     "A85256565A",   # Underemployment rate, persons
@@ -195,3 +195,4 @@ ABS_DATASETS = [
         }
     },
 ]
+

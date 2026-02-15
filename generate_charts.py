@@ -1,4 +1,4 @@
-# s02_readabs_plotting.py
+# generate_charts.py
 
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -15,17 +15,18 @@ logging.getLogger('matplotlib.font_manager').setLevel(logging.ERROR)
 
 # --- IMPORT CONFIGURATION ---
 try:
-    from s00_readabs_datalist import ABS_DATASETS, OUTPUT_DIRECTORY
+    from config import ABS_DATASETS, OUTPUT_DIRECTORY
 except ImportError:
-    print("Error: Could not find 's00_readabs_datalist.py'.")
+    print("Error: Could not find 'config.py'.")
     sys.exit(1)
 
 # --- STYLE SETTINGS ---
 # Tries Roboto first, then Arial, then generic sans-serif
-plt.rcParams["font.family"] = ["Roboto", "Montserrat", "Zalando Sans", "Reddit Sans", "sans-serif"]
+plt.rcParams["font.family"] = ["Roboto", "Montserrat",
+                               "Zalando Sans", "Reddit Sans", "sans-serif"]
 
-COLOR_PRIMARY = '#ED3144' # Strong Red
-COLOR_SECONDARY = '#000000' # Black
+COLOR_PRIMARY = '#ED3144'  # Strong Red
+COLOR_SECONDARY = '#000000'  # Black
 COLOR_GRID = '#e0e0e0'
 
 
@@ -82,23 +83,24 @@ def create_abs_chart(df, title, subtitle, filename_prefix, columns_to_plot, is_p
         if col_name not in df.columns:
             print(f"  [!] Warning: Column '{col_name}' not found in data.")
             continue
-            
+
         color = COLOR_PRIMARY if i == 0 else COLOR_SECONDARY
         linewidth = 2.5 if i == 0 else 1.5
         alpha = 1.0 if i == 0 else 0.7
         linestyle = '-'
-        
-        ax.plot(df.index, df[col_name], color=color, linewidth=linewidth, linestyle=linestyle, alpha=alpha, label=col_name)
+
+        ax.plot(df.index, df[col_name], color=color, linewidth=linewidth,
+                linestyle=linestyle, alpha=alpha, label=col_name)
 
         # Label at end of line
         # FIX: Use .max() instead of [-1] to satisfy Pylance
         last_date = df.index.max()
         last_val = df[col_name].loc[last_date]
-        
+
         if pd.notnull(last_val):
             ax.text(
-                last_date, last_val, f"  {last_val:,.1f}", 
-                color=color, ha='left', va='center', 
+                last_date, last_val, f"  {last_val:,.1f}",
+                color=color, ha='left', va='center',
                 fontweight='bold', fontsize=10
             )
 
@@ -112,24 +114,28 @@ def create_abs_chart(df, title, subtitle, filename_prefix, columns_to_plot, is_p
     ax.set_xlabel("Date", fontweight='semibold')
 
     # Title & Subtitle
-    fig.text(0.1, 0.95, title, ha='left', va='top', fontsize=16, fontweight='bold')
-    fig.text(0.1, 0.9, subtitle, ha='left', va='top', fontsize=10, color='#000000')
+    fig.text(0.1, 0.95, title, ha='left', va='top',
+             fontsize=16, fontweight='bold')
+    fig.text(0.1, 0.9, subtitle, ha='left',
+             va='top', fontsize=10, color='#000000')
 
     # Footer
     caption_text = "Data Source: Australian Bureau of Statistics  •  Chart generated via readabs"
-    fig.text(0.1, 0.02, caption_text, ha='left', va='bottom', fontsize=8, color='#000000')
+    fig.text(0.1, 0.02, caption_text, ha='left',
+             va='bottom', fontsize=8, color='#000000')
 
     fig.subplots_adjust(top=0.83, bottom=0.18)
 
     # Save
     charts_folder = "abs_charts_output"
     os.makedirs(charts_folder, exist_ok=True)
-    
+
     clean_title = filename_prefix.replace(".csv", "").replace(" ", "_")
     save_path = os.path.join(charts_folder, f"Chart_{clean_title}.png")
-    
+
     fig.savefig(save_path, dpi=300, bbox_inches='tight')
     plt.close(fig)
+
 
 # --- MAIN EXECUTION ---
 if __name__ == "__main__":
@@ -183,7 +189,8 @@ if __name__ == "__main__":
                                 found = True
                                 break
                         if not found:
-                            print(f"  [!] Could not find Series ID '{tid}' in {csv_filename}")
+                            print(f"  [!] Could not find Series ID '{
+                                  tid}' in {csv_filename}")
 
                 # Case B: No IDs provided -> Default to first column
                 else:
@@ -191,18 +198,21 @@ if __name__ == "__main__":
                 # ------------------------------
 
                 if not cols_to_plot:
-                    print(f"  [!] No valid columns found to plot for {csv_filename}")
+                    print(f"  [!] No valid columns found to plot for {
+                          csv_filename}")
                     continue
 
                 # --- APPLY PERCENTAGE CHANGE TRANSFORMATION ---
                 plot_df = df[cols_to_plot].copy()
-                plot_df, is_percentage = apply_calc_transformation(plot_df, calc_type, frequency)
+                plot_df, is_percentage = apply_calc_transformation(
+                    plot_df, calc_type, frequency)
 
                 # Drop NaN rows created by pct_change
                 plot_df = plot_df.dropna()
 
                 if plot_df.empty:
-                    print(f"  [!] No data after transformation for {csv_filename}")
+                    print(f"  [!] No data after transformation for {
+                          csv_filename}")
                     continue
                 # -----------------------------------------------
 
@@ -211,13 +221,15 @@ if __name__ == "__main__":
                     title = display_title
                 else:
                     # Fallback to auto-generated title
-                    title = f"{dataset_name}: {csv_filename.replace('.csv', '').replace('_', ' ')}"
+                    title = f"{dataset_name}: {
+                        csv_filename.replace('.csv', '').replace('_', ' ')}"
                 # ----------------------
 
                 latest_date_str = plot_df.index.max().strftime('%B %Y')
                 subtitle = f"Latest Data: {latest_date_str}"
 
-                create_abs_chart(plot_df, title, subtitle, csv_filename, cols_to_plot, is_percentage)
+                create_abs_chart(plot_df, title, subtitle,
+                                 csv_filename, cols_to_plot, is_percentage)
 
             except Exception as e:
                 print(f"Failed to plot {csv_filename}: {e}")

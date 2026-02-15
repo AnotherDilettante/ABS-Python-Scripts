@@ -1,5 +1,5 @@
-# s05_dashboard.py — ABS Economic Data Dashboard
-# Run with: streamlit run s05_dashboard.py
+# dashboard.py — ABS Economic Data Dashboard
+# Run with: streamlit run dashboard.py
 
 import streamlit as st
 import pandas as pd
@@ -14,10 +14,10 @@ OUTPUT_DIRECTORY = "abs_data_output"
 COLORS = ['#ED3144', '#000000', '#2563EB', '#059669', '#D97706', '#7C3AED']
 
 # --- DATASET REGISTRY ---
-# Try to import from s00 for proper grouping and names.
-# If s00 isn't found (e.g. running from a different folder), fall back to scanning the CSV directory.
+# Try to import from config for proper grouping and names.
+# If config isn't found (e.g. running from a different folder), fall back to scanning the CSV directory.
 try:
-    from s00_readabs_datalist import ABS_DATASETS
+    from config import ABS_DATASETS
     REGISTRY_AVAILABLE = True
 except ImportError:
     ABS_DATASETS = []

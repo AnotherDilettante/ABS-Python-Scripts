@@ -17,6 +17,7 @@ C:\Users\angus\Sync\Claude Code\ABS-Project\
 ├── s01_readabs_datadownload.py       # Data downloader
 ├── s02_readabs_plotting.py           # Static chart generator (PNG)
 ├── s05_dashboard.py                  # Interactive Streamlit web dashboard
+├── s99_pipeline_control.py           # TUI control center (orchestrates all scripts)
 ├── Key ABS Time Series.xlsx          # Reference: Original dataset list
 ├── Summary.md                        # Original project documentation
 ├── DASHBOARD_SETUP.md                # Dashboard installation and usage guide
@@ -43,6 +44,9 @@ C:\Users\angus\Sync\Claude Code\ABS-Project\
 - **streamlit** - Web dashboard framework
 - **plotly** - Interactive charting library
 
+**TUI Control Center (s99):**
+- **rich** - Terminal UI framework for interactive menus and status displays
+
 **Installation:**
 ```bash
 # Option 1: Using pip (system-wide)
@@ -55,6 +59,8 @@ pip install -r requirements.txt
 ```
 
 **Full dependency list available in:** `requirements.txt`
+
+**Note:** The TUI control center (s99) provides a single interactive menu to run all pipeline operations, check status, and view summaries without needing to remember individual script commands.
 
 ### Virtual Environment (venv)
 
@@ -98,6 +104,8 @@ OUTPUT_DIRECTORY = "abs_data_output"
     "tables": {
         "5206001_Key_Aggregates": {
             "filename": "GDP_Key_Aggregates_sa.csv",
+            "display_title": "Gross Domestic Product - Key Aggregates",  # Chart title
+            "calc_type": "qoq",      # Calculation: "raw", "yoy", "qoq", "mom"
             "plot_ids": [
                 "A2304370T",         # Series ID for GDP
                 "A2304372W",         # Series ID for GDP per capita
@@ -107,6 +115,12 @@ OUTPUT_DIRECTORY = "abs_data_output"
     }
 }
 ```
+
+**calc_type Options:**
+- `"raw"` - No transformation (default)
+- `"yoy"` - Year-on-year % change (12 periods for monthly, 4 for quarterly)
+- `"qoq"` - Quarter-on-quarter % change (1 period)
+- `"mom"` - Month-on-month % change (1 period)
 
 **Frequency-Based Row Calculation:**
 - Monthly: HISTORY_YEARS × 12 rows
@@ -226,11 +240,29 @@ python s02_readabs_plotting.py
 
 ### Running Regular Updates
 
+**CLI Arguments for s01:**
+```bash
+# List all available datasets
+python s01_readabs_datadownload.py --list
+
+# Download only monthly datasets
+python s01_readabs_datadownload.py --freq Monthly
+
+# Download only quarterly datasets
+python s01_readabs_datadownload.py --freq Quarterly
+
+# Download specific catalogue only
+python s01_readabs_datadownload.py --cat 6401.0
+
+# Combine filters
+python s01_readabs_datadownload.py --freq Monthly --cat 6401.0
+```
+
 **Monthly Update Cycle** (for monthly datasets):
 ```bash
 cd "C:\Users\angus\Sync\Claude Code\ABS-Project"
-python s01_readabs_datadownload.py  # Downloads new data
-python s02_readabs_plotting.py      # Regenerates all charts
+python s01_readabs_datadownload.py --freq Monthly  # Downloads monthly data only
+python s02_readabs_plotting.py                      # Regenerates all charts
 ```
 
 **Quarterly Update Cycle** (for quarterly datasets):
@@ -346,8 +378,8 @@ Only necessary if suspecting stale data or corrupted downloads.
 **Console Output Format:**
 ```
 Processing: CPI (Cat: 6401.0) | Freq: Monthly
-  [✓] Saved: CPI_Table1_All_Groups.csv (2 series)
-  [✓] Saved: CPI_Table6_CPI_Means.csv (3 series)
+  [OK] Saved: CPI_Table1_All_Groups.csv (2 series)
+  [OK] Saved: CPI_Table6_CPI_Means.csv (3 series)
 ```
 
 **Warning Format:**
@@ -558,6 +590,86 @@ Browser opens automatically at `http://localhost:8501`
 - Date range slider excludes all data
 - Solution: Toggle series on, or reset date range to full span
 
+### TUI Control Center (s99_pipeline_control.py)
+
+**Quick Start:**
+```bash
+python s99_pipeline_control.py
+```
+
+The TUI provides a terminal-based menu interface to orchestrate the entire pipeline:
+
+**Menu Options:**
+- **0. Show Pipeline Status** - Dashboard showing configuration, file counts, last update times, and dependency checks
+- **1. Download Data** - Runs s01 with optional frequency filtering (all/monthly/quarterly)
+- **2. Generate Charts** - Runs s02 to create all static PNG charts
+- **3. Launch Dashboard** - Starts the Streamlit interactive dashboard
+- **4. Full Update** - Runs download → charts in sequence with error handling
+- **5. View Datasets** - Table of all configured datasets with catalogue IDs and frequencies
+- **Q. Quit** - Exit the control center
+
+**Key Features:**
+- Real-time status checks (CSV/PNG counts, timestamps, missing dependencies)
+- Live output from running scripts displayed in terminal
+- Automatic pre-flight checks (e.g., warns if no data exists before running charts)
+- Summaries after each operation (files created, errors encountered)
+- Graceful error handling (continues on failure, shows clear error messages)
+- Single entry point for entire pipeline - no need to remember script names
+
+**Use Cases:**
+
+**First-time setup verification:**
+```
+python s99_pipeline_control.py
+→ Option 0 (Show Status)
+→ Check all scripts present, dependencies installed
+```
+
+**Monthly update routine:**
+```
+python s99_pipeline_control.py
+→ Option 1 (Download)
+→ Select "2. Monthly datasets only"
+→ Review output, note files updated
+→ Option 2 (Generate Charts) if needed
+```
+
+**Quick data exploration:**
+```
+python s99_pipeline_control.py
+→ Option 3 (Launch Dashboard)
+→ Explore interactively in browser
+→ Ctrl+C to stop when done
+```
+
+**Full pipeline refresh:**
+```
+python s99_pipeline_control.py
+→ Option 4 (Full Update)
+→ Confirms before proceeding
+→ Runs download + charts automatically
+→ Shows final summary
+```
+
+**Technical Details:**
+- Uses `rich` library for colored output, tables, panels
+- Runs scripts via `subprocess` to capture output
+- Returns to menu after each operation
+- Keyboard interrupt (Ctrl+C) safely exits
+
+**Installation:**
+```bash
+venv\Scripts\activate
+pip install rich
+```
+
+**Benefits over running scripts individually:**
+- ✅ Don't need to remember script names or arguments
+- ✅ Built-in pre-flight checks prevent common errors
+- ✅ Status dashboard shows pipeline health at a glance
+- ✅ Summaries confirm operations completed successfully
+- ✅ Single tool for entire workflow
+
 ### Dashboard vs Static Charts Decision Tree
 
 ```
@@ -610,165 +722,27 @@ To modify styling or behavior, edit `s05_dashboard.py`:
 
 ## 4B. FUTURE ENHANCEMENTS - IMPLEMENTATION ROADMAP
 
-#### A) Quarter-on-Quarter (QoQ) Percentage Calculations
+#### A) ~~Quarter-on-Quarter (QoQ) Percentage Calculations~~ ✅ IMPLEMENTED
 
-**Current State:** Charts display raw index values or absolute numbers  
-**Goal:** Add percentage change calculations for meaningful trend analysis
+**Status:** Complete - February 2026
 
-**Implementation Approach:**
+Added `calc_type` field to s00 configuration with options:
+- `"raw"` - No transformation (default)
+- `"yoy"` - Year-on-year % change
+- `"qoq"` - Quarter-on-quarter % change
+- `"mom"` - Month-on-month % change
 
-**Option 1 - Modify s01 (calculate during download):**
-```python
-# After filtering date range in s01_readabs_datadownload.py:
-filtered_df = df.tail(rows_to_keep)
+s02 applies transformations via `apply_calc_transformation()` function and updates Y-axis label to "% Change" when applicable.
 
-# Add QoQ calculations for specified series
-if 'calc_type' in value and value['calc_type'] == 'qoq':
-    for col in filtered_df.columns:
-        if 'Index' in col or 'GDP' in col or 'CPI' in col:
-            # For quarterly data: pct_change(1)
-            # For monthly data converting to QoQ: pct_change(3)
-            qoq_col_name = f"{col} - QoQ % Change"
-            filtered_df[qoq_col_name] = filtered_df[col].pct_change(1) * 100
-```
+#### B) ~~Command-Line Arguments (argparse)~~ ✅ IMPLEMENTED
 
-**Option 2 - Create s03 (dedicated calculation script):**
-```python
-# New file: s03_readabs_calculations.py
-import pandas as pd
-import os
-from s00_readabs_datalist import ABS_DATASETS, OUTPUT_DIRECTORY
+**Status:** Complete - February 2026
 
-CALC_CONFIGS = {
-    "GDP_Key_Aggregates_sa.csv": {
-        "series": ["A2304370T", "A2304372W"],  # GDP and GDP per capita
-        "calc": "qoq",
-        "periods": 1  # 1 quarter back
-    },
-    "CPI_Table6_CPI_Means.csv": {
-        "series": ["A130607784C", "A130400383T"],  # All groups, Trimmed mean
-        "calc": "qoq",
-        "periods": 1
-    }
-}
-
-for csv_file, config in CALC_CONFIGS.items():
-    df = pd.read_csv(os.path.join(OUTPUT_DIRECTORY, csv_file), index_col=0)
-    df.index = pd.to_datetime(df.index)
-    
-    for col in df.columns:
-        # Check if this series needs calculation
-        series_id = col.split('(')[-1].strip(')')
-        if series_id in config['series']:
-            new_col = f"{col} - QoQ % Change"
-            df[new_col] = df[col].pct_change(config['periods']) * 100
-    
-    # Save augmented file
-    df.to_csv(os.path.join(OUTPUT_DIRECTORY, csv_file))
-```
-
-**Update s00 configuration:**
-```python
-"5206001_Key_Aggregates": {
-    "filename": "GDP_Key_Aggregates_sa.csv",
-    "plot_ids": ["A2304370T", "A2304372W"],
-    "calc_type": "qoq",  # NEW: Trigger calculation
-    "plot_calc": True     # NEW: Plot the % change instead of raw
-}
-```
-
-**Update s02 plotting logic:**
-```python
-# In create_abs_chart(), check if calculated columns exist
-if 'plot_calc' in config and config['plot_calc']:
-    # Look for " - QoQ % Change" columns
-    calc_cols = [c for c in df.columns if "QoQ % Change" in c]
-    if calc_cols:
-        cols_to_plot = calc_cols
-```
-
-#### B) Command-Line Arguments (argparse)
-
-**Goal:** Enable selective pipeline runs without editing code
-
-**Implementation in s01_readabs_datadownload.py:**
-```python
-import argparse
-
-# Add after imports, before main execution
-def parse_arguments():
-    parser = argparse.ArgumentParser(
-        description='Download ABS economic data with optional filters'
-    )
-    
-    parser.add_argument(
-        '--freq',
-        choices=['monthly', 'quarterly', 'annual'],
-        help='Only download datasets of this frequency'
-    )
-    
-    parser.add_argument(
-        '--dataset',
-        nargs='+',
-        help='Only download specific datasets by name (e.g., "GDP" "CPI")'
-    )
-    
-    parser.add_argument(
-        '--years',
-        type=int,
-        default=HISTORY_YEARS,
-        help=f'Override history years (default: {HISTORY_YEARS})'
-    )
-    
-    parser.add_argument(
-        '--cat',
-        nargs='+',
-        help='Only download specific catalogue IDs (e.g., "5206.0" "6401.0")'
-    )
-    
-    return parser.parse_args()
-
-# In main block:
-if __name__ == "__main__":
-    args = parse_arguments()
-    
-    # Override HISTORY_YEARS if specified
-    years_to_use = args.years if args.years else HISTORY_YEARS
-    
-    print(f"--- ABS BATCH DOWNLOAD STARTED (History: {years_to_use} Years) ---")
-    
-    for item in ABS_DATASETS:
-        # Filter by frequency
-        if args.freq and item['frequency'].lower() != args.freq.lower():
-            continue
-        
-        # Filter by dataset name
-        if args.dataset and item['name'] not in args.dataset:
-            continue
-        
-        # Filter by catalogue ID
-        if args.cat and item['cat_id'] not in args.cat:
-            continue
-        
-        fetch_and_save_dataset(item, years_to_use)
-```
-
-**Usage Examples:**
+s01 now supports:
 ```bash
-# Update only monthly datasets
-python s01_readabs_datadownload.py --freq monthly
-
-# Update only GDP and CPI
-python s01_readabs_datadownload.py --dataset "National Accounts (GDP)" "CPI"
-
-# Update with 15 years of history instead of 10
-python s01_readabs_datadownload.py --years 15
-
-# Combine filters: quarterly datasets from last 5 years
-python s01_readabs_datadownload.py --freq quarterly --years 5
-
-# Update specific catalogue IDs
-python s01_readabs_datadownload.py --cat "5206.0" "6401.0"
+python s01_readabs_datadownload.py --list              # List datasets
+python s01_readabs_datadownload.py --freq Monthly      # Filter by frequency
+python s01_readabs_datadownload.py --cat 6401.0        # Filter by catalogue
 ```
 
 #### C) AI-Generated Commentary and Analysis
@@ -944,40 +918,20 @@ if 'manual_scraper' in dataset:
     # Save as usual
 ```
 
-#### E) Custom Chart Titles
+#### E) ~~Custom Chart Titles~~ ✅ IMPLEMENTED
 
-**Current:** Titles auto-generated from filenames  
-**Goal:** Professional, publication-ready titles
+**Status:** Complete - February 2026
 
-**Implementation in s00:**
+Added `display_title` field to all table configs in s00. s02 uses display titles with fallback to auto-generated titles if not present.
+
+Example:
 ```python
-{
-    "name": "National Accounts (GDP)",
-    "cat_id": "5206.0",
-    "frequency": "Quarterly",
-    "tables": {
-        "5206001_Key_Aggregates": {
-            "filename": "GDP_Key_Aggregates_sa.csv",
-            "plot_ids": ["A2304370T", "A2304372W"],
-            "display_title": "Australian GDP Growth",  # NEW
-            "subtitle_template": "Chain volume measures, seasonally adjusted"  # NEW
-        }
-    }
+"5206001_Key_Aggregates": {
+    "filename": "GDP_Key_Aggregates_sa.csv",
+    "display_title": "Gross Domestic Product - Key Aggregates",
+    "calc_type": "qoq",
+    "plot_ids": ["A2304370T", "A2304372W"]
 }
-```
-
-**Update s02 to use custom titles:**
-```python
-# In plotting loop:
-if 'display_title' in value:
-    title = value['display_title']
-else:
-    title = f"{dataset_name}: {csv_filename.replace('.csv', '').replace('_', ' ')}"
-
-if 'subtitle_template' in value:
-    subtitle = f"{value['subtitle_template']} | Latest: {latest_date_str}"
-else:
-    subtitle = f"Latest Data: {latest_date_str}"
 ```
 
 #### F) Cross-Dataset Quarterly Comparisons
@@ -1156,6 +1110,20 @@ When modifying the pipeline, document changes:
 ```markdown
 ## CHANGELOG
 
+### 2026-02-16
+- Added s99_pipeline_control.py - TUI control center for pipeline orchestration
+- Single interactive menu to run all scripts, check status, view summaries
+- Uses rich library for terminal UI with colored output and tables
+- Status dashboard shows file counts, timestamps, missing dependencies
+- Live output from scripts, error handling, pre-flight checks
+
+### 2026-02-13
+- Added CLI arguments to s01 (--freq, --cat, --list flags)
+- Added display_title field to all table configs in s00
+- Added calc_type field for percentage change calculations (raw, yoy, qoq, mom)
+- Updated s02 to use display titles and apply percentage transformations
+- Fixed Unicode encoding issue (replaced checkmark with [OK])
+
 ### 2025-02-11
 - Added s05_dashboard.py - Interactive Streamlit web interface
 - Created DASHBOARD_SETUP.md - Installation and usage guide
@@ -1169,11 +1137,6 @@ When modifying the pipeline, document changes:
 - Pipeline covers 7 core datasets (GDP, CPI, Building, Population, Labour, Migration)
 - All using Series ID filtering for clean outputs
 - Static PNG chart generation with red/black styling
-
-### [Future Date]
-- Added QoQ calculations to GDP and CPI (s03 or s04)
-- Implemented argparse CLI in s01
-- [etc.]
 ```
 
 ### Version Control with Git
@@ -1198,7 +1161,7 @@ abs_charts_output/
 ```
 
 **What Gets Committed:**
-- ✅ All Python scripts (s00, s01, s02, s05)
+- ✅ All Python scripts (s00, s01, s02, s05, s99)
 - ✅ Configuration files (requirements.txt, .gitignore)
 - ✅ Documentation (SKILL.md, DASHBOARD_SETUP.md, Summary.md)
 - ✅ Reference files (Key ABS Time Series.xlsx)
@@ -1240,6 +1203,7 @@ git merge feature-qoq-calculations
 - `s01_readabs_datadownload.py` - Core download logic
 - `s02_readabs_plotting.py` - Static chart generation
 - `s05_dashboard.py` - Interactive dashboard application
+- `s99_pipeline_control.py` - TUI control center
 - `requirements.txt` - Dependency list for reproducibility
 - `SKILL.md` - This documentation
 - `DASHBOARD_SETUP.md` - Dashboard setup instructions
@@ -1307,18 +1271,27 @@ This skill documents a sophisticated, dual-mode pipeline for Australian economic
 
 **Future Roadmap:**
 The skill includes detailed implementation guides for:
-- QoQ percentage calculations
-- CLI arguments with argparse
+- ~~QoQ percentage calculations~~ ✅ Implemented
+- ~~CLI arguments with argparse~~ ✅ Implemented
+- ~~Custom chart titles~~ ✅ Implemented
 - AI-generated commentary
 - Manual scrapers for special datasets
-- Custom chart titles
 - Cross-dataset quarterly comparisons
 - Full report generation (PDF/Word)
 
 **Transformation Achieved:**
 This pipeline transforms what was previously hours of manual work (navigating ABS website, downloading Excel files, copying data, creating charts) into:
-1. **One command** for data updates: `python s01_readabs_datadownload.py`
-2. **One command** for exploration: `streamlit run s05_dashboard.py`
-3. **One command** for report charts: `python s02_readabs_plotting.py`
+
+**Single Control Center:**
+- `python s99_pipeline_control.py` - Interactive menu for all operations
+  - Status checks, data downloads, chart generation, dashboard launch
+  - Pre-flight checks, live output, summaries
+
+**Or Individual Scripts:**
+1. **Data updates:** `python s01_readabs_datadownload.py`
+   - With selective updates: `--freq Monthly`, `--cat 6401.0`, `--list`
+2. **Exploration:** `streamlit run s05_dashboard.py`
+3. **Report charts:** `python s02_readabs_plotting.py`
+   - Professional display titles and configurable % change calculations
 
 The addition of the interactive dashboard (February 2025) represents a shift from purely deterministic, static outputs to a hybrid approach: deterministic data processing with dynamic, user-controlled visualization. This maintains the reliability of automated downloads while adding the flexibility of interactive exploration—demonstrating the evolution from simple automation to sophisticated analytical tooling.

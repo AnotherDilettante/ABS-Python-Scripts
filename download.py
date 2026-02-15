@@ -1,4 +1,4 @@
-# s01_readabs_datadownload.py
+# download.py
 
 import readabs as ra
 import pandas as pd
@@ -11,9 +11,9 @@ import io
 
 # --- IMPORT CONFIGURATION ---
 try:
-    from s00_readabs_datalist import ABS_DATASETS, HISTORY_YEARS, OUTPUT_DIRECTORY
+    from config import ABS_DATASETS, HISTORY_YEARS, OUTPUT_DIRECTORY
 except ImportError:
-    print("Error: Could not find 's00_readabs_datalist.py'.")
+    print("Error: Could not find 'config.py'.")
     sys.exit(1)
 
 # --- CLI ARGUMENT PARSER ---
