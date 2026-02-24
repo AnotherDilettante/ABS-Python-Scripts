@@ -5,14 +5,16 @@ venv/
 # Ignore Python cache files
 __pycache__/
 *.pyc
+*.pyo
 
 # Ignore output data and charts (Since we can regenerate them)
 abs_data_output/
 abs_charts_output/
 .readabs_cache/
 
-# Ignore old files
-zzz - old py/
+# Ignore guidance files
+guidance/
 
 # Ignore system files
 .DS_Store
+Thumbs.db
