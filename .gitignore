@@ -8,7 +8,6 @@ __pycache__/
 *.pyo
 
 # Ignore output data and charts (Since we can regenerate them)
-abs_data_output/
 abs_charts_output/
 .readabs_cache/
 
