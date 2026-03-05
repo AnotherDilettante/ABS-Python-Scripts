@@ -12,11 +12,12 @@ import os
 OUTPUT_DIRECTORY = "abs_data_output"
 
 # Six-colour palette matching generate_charts.py
-COLORS = ['#ED3144', '#1B4F8A', '#059669', '#D97706', '#7C3AED', '#555555']
+COLORS = ["#ED3144", "#1B4F8A", "#059669", "#D97706", "#7C3AED", "#555555"]
 
 # --- DATASET REGISTRY ---
 try:
     from config import ABS_DATASETS
+
     REGISTRY_AVAILABLE = True
 except ImportError:
     ABS_DATASETS = []
@@ -24,11 +25,17 @@ except ImportError:
 
 # Mirror the same lookup sets used in generate_charts.py
 PERCENT_SERIES_IDS = {
-    "A84423050A", "A84423051C", "A85256565A",
-    "A85255726K", "A2133256J",
+    "A84423050A",
+    "A84423051C",
+    "A85256565A",
+    "A85255726K",
+    "A2133256J",
 }
 THOUSANDS_SERIES_IDS = {
-    "A84423047L", "A2133251W", "A2133252X", "A2133254C",
+    "A84423047L",
+    "A2133251W",
+    "A2133252X",
+    "A2133254C",
 }
 
 
@@ -36,10 +43,11 @@ THOUSANDS_SERIES_IDS = {
 # LABEL & FORMAT HELPERS
 # ---------------------------------------------------------------------------
 
+
 def get_series_id(col_name):
     """Extract ABS Series ID from 'Description (A1234567X)' column name."""
-    if '(' in col_name and col_name.endswith(')'):
-        return col_name[col_name.rfind('(') + 1:-1].strip()
+    if "(" in col_name and col_name.endswith(")"):
+        return col_name[col_name.rfind("(") + 1 : -1].strip()
     return col_name
 
 
@@ -54,20 +62,20 @@ def resolve_label(col_name, labels_map):
         if sid in labels_map:
             return labels_map[sid]
     # Fallback: strip Series ID and trailing semicolons
-    desc = re.sub(r'\s*\([A-Z0-9]{6,}\)\s*$', '', col_name).strip()
-    desc = re.sub(r'[;\s]+$', '', desc).strip()
+    desc = re.sub(r"\s*\([A-Z0-9]{6,}\)\s*$", "", col_name).strip()
+    desc = re.sub(r"[;\s]+$", "", desc).strip()
     return desc or col_name
 
 
 def sanitise_title(text):
     """Replace '&' with 'and' in any title or label string."""
-    return text.replace(' & ', ' and ')
+    return text.replace(" & ", " and ")
 
 
 def ensure_australian(title):
     """Prepend 'Australian' if neither 'Australia' nor 'Australian' is present."""
-    if 'australia' not in title.lower():
-        return 'Australian ' + title
+    if "australia" not in title.lower():
+        return "Australian " + title
     return title
 
 
@@ -107,6 +115,7 @@ def fmt_change(change, fmt):
 # CLEAN Y-AXIS BOUNDS  (mirrors generate_charts.py logic)
 # ---------------------------------------------------------------------------
 
+
 def compute_clean_ylim(data_min, data_max, n_ticks=7, force_min=None):
     """
     Compute clean y-axis bounds and tick interval so that both the bottom and
@@ -125,13 +134,13 @@ def compute_clean_ylim(data_min, data_max, n_ticks=7, force_min=None):
         span = abs(data_max) or 1
 
     raw_interval = span / (n_ticks - 1)
-    magnitude    = 10 ** math.floor(math.log10(raw_interval))
-    nice_steps   = [1, 2, 2.5, 5, 10]
-    interval     = min(nice_steps, key=lambda s: abs(s * magnitude - raw_interval))
-    interval    *= magnitude
+    magnitude = 10 ** math.floor(math.log10(raw_interval))
+    nice_steps = [1, 2, 2.5, 5, 10]
+    interval = min(nice_steps, key=lambda s: abs(s * magnitude - raw_interval))
+    interval *= magnitude
 
     bottom = math.floor(data_min / interval) * interval
-    top    = math.ceil(data_max  / interval) * interval
+    top = math.ceil(data_max / interval) * interval
 
     if force_min is not None:
         bottom = force_min
@@ -146,7 +155,7 @@ def get_yaxis_range(df_view, selected_series, value_format):
     """
     vals = pd.concat(
         [df_view[c].dropna() for c in selected_series if c in df_view.columns],
-        ignore_index=True
+        ignore_index=True,
     )
     if vals.empty:
         return None, None, None
@@ -158,6 +167,7 @@ def get_yaxis_range(df_view, selected_series, value_format):
 # XAXIS TICK HELPERS
 # ---------------------------------------------------------------------------
 
+
 def get_biannual_tickvals(index):
     """
     Return a list of Timestamps for every March and September present in
@@ -166,9 +176,9 @@ def get_biannual_tickvals(index):
     """
     if index.empty:
         return []
-    start = index.min().to_period('Q').start_time
-    end   = index.max().to_period('Q').end_time
-    ticks = pd.date_range(start=start, end=end, freq='QS-MAR')
+    start = index.min().to_period("Q").start_time
+    end = index.max().to_period("Q").end_time
+    ticks = pd.date_range(start=start, end=end, freq="QS-MAR")
     # Keep only March and September quarter starts
     return [t for t in ticks if t.month in (3, 9)]
 
@@ -176,6 +186,7 @@ def get_biannual_tickvals(index):
 # ---------------------------------------------------------------------------
 # FILE MAP
 # ---------------------------------------------------------------------------
+
 
 def build_file_map():
     """
@@ -187,37 +198,41 @@ def build_file_map():
 
     if REGISTRY_AVAILABLE:
         for dataset in ABS_DATASETS:
-            name    = sanitise_title(dataset['name'])
+            name = sanitise_title(dataset["name"])
             entries = []
 
             # Merged output datasets (e.g. OAD Combined)
-            if dataset.get('merge_tables'):
-                out_cfg      = dataset.get('merged_output', {})
-                filename     = out_cfg.get('filename', 'OAD_Combined.csv')
-                display      = sanitise_title(out_cfg.get(
-                    'display_title',
-                    filename.replace('.csv', '').replace('_', ' ')
-                ))
-                value_format = out_cfg.get('value_format', 'thousands')
-                labels_map   = out_cfg.get('labels', {})
+            if dataset.get("merge_tables"):
+                out_cfg = dataset.get("merged_output", {})
+                filename = out_cfg.get("filename", "OAD_Combined.csv")
+                display = sanitise_title(
+                    out_cfg.get(
+                        "display_title", filename.replace(".csv", "").replace("_", " ")
+                    )
+                )
+                value_format = out_cfg.get("value_format", "thousands")
+                labels_map = out_cfg.get("labels", {})
                 entries.append((filename, display, value_format, labels_map))
 
             # Standard table datasets
-            for key, value in dataset.get('tables', {}).items():
+            for key, value in dataset.get("tables", {}).items():
                 if isinstance(value, dict):
-                    filename     = value['filename']
-                    display      = sanitise_title(value.get(
-                        'display_title',
-                        filename.replace('.csv', '').replace('_', ' ')
-                    ))
-                    value_format = value.get('value_format', 'raw')
-                    labels_map   = value.get('labels', {})
+                    filename = value["filename"]
+                    display = sanitise_title(
+                        value.get(
+                            "display_title",
+                            filename.replace(".csv", "").replace("_", " "),
+                        )
+                    )
+                    value_format = value.get("value_format", "raw")
+                    labels_map = value.get("labels", {})
                 else:
-                    filename     = value
-                    display      = sanitise_title(
-                        filename.replace('.csv', '').replace('_', ' '))
-                    value_format = 'raw'
-                    labels_map   = {}
+                    filename = value
+                    display = sanitise_title(
+                        filename.replace(".csv", "").replace("_", " ")
+                    )
+                    value_format = "raw"
+                    labels_map = {}
                 entries.append((filename, display, value_format, labels_map))
 
             if entries:
@@ -226,12 +241,12 @@ def build_file_map():
     else:
         if os.path.exists(OUTPUT_DIRECTORY):
             for f in sorted(os.listdir(OUTPUT_DIRECTORY)):
-                if f.endswith('.csv'):
-                    display = f.replace('.csv', '').replace('_', ' ')
-                    group   = f.split('_')[0]
+                if f.endswith(".csv"):
+                    display = f.replace(".csv", "").replace("_", " ")
+                    group = f.split("_")[0]
                     if group not in file_map:
                         file_map[group] = []
-                    file_map[group].append((f, display, 'raw', {}))
+                    file_map[group].append((f, display, "raw", {}))
 
     return file_map
 
@@ -242,7 +257,7 @@ def load_csv(filename):
     if not os.path.exists(path):
         return None
     df = pd.read_csv(path, index_col=0)
-    df.index = pd.to_datetime(df.index, errors='coerce')
+    df.index = pd.to_datetime(df.index, errors="coerce")
     df = df.sort_index()
     return df
 
@@ -251,11 +266,10 @@ def load_csv(filename):
 # APP
 # ---------------------------------------------------------------------------
 
+
 def main():
     st.set_page_config(
-        page_title="ABS Economic Dashboard",
-        page_icon="📊",
-        layout="wide"
+        page_title="ABS Economic Dashboard", page_icon="📊", layout="wide"
     )
 
     st.title("📊 ABS Economic Data Dashboard")
@@ -316,11 +330,12 @@ def main():
             min_value=min_date,
             max_value=max_date,
             value=(min_date, max_date),
-            format="MMM YYYY"
+            format="MMM YYYY",
         )
 
-    mask    = (df.index >= pd.Timestamp(date_range[0])) & \
-              (df.index <= pd.Timestamp(date_range[1]))
+    mask = (df.index >= pd.Timestamp(date_range[0])) & (
+        df.index <= pd.Timestamp(date_range[1])
+    )
     df_view = df.loc[mask]
 
     if not selected_series:
@@ -332,40 +347,39 @@ def main():
 
     for i, col in enumerate(selected_series):
         col_fmt = resolve_col_format(value_format, col)
-        label   = resolve_label(col, labels_map)
+        label = resolve_label(col, labels_map)
 
         if col_fmt == "percent":
-            hover_fmt    = ".2f"
+            hover_fmt = ".2f"
             hover_suffix = "%"
         elif col_fmt == "count":
-            hover_fmt    = ",.0f"
+            hover_fmt = ",.0f"
             hover_suffix = ""
         else:
-            hover_fmt    = ",.1f"
+            hover_fmt = ",.1f"
             hover_suffix = ""
 
-        fig.add_trace(go.Scatter(
-            x=df_view.index,
-            y=df_view[col],
-            name=label,
-            line=dict(
-                color=COLORS[i % len(COLORS)],
-                width=2.5 if i == 0 else 1.8
-            ),
-            hovertemplate=(
-                f'%{{x|%b %Y}}<br>%{{y:{hover_fmt}}}{hover_suffix}'
-                f'<extra>{label}</extra>'
+        fig.add_trace(
+            go.Scatter(
+                x=df_view.index,
+                y=df_view[col],
+                name=label,
+                line=dict(color=COLORS[i % len(COLORS)], width=2.5 if i == 0 else 1.8),
+                hovertemplate=(
+                    f"%{{x|%b %Y}}<br>%{{y:{hover_fmt}}}{hover_suffix}"
+                    f"<extra>{label}</extra>"
+                ),
             )
-        ))
+        )
 
     # Y-axis label
     y_titles = {
-        "percent":   "Rate (%)",
+        "percent": "Rate (%)",
         "thousands": "Persons ('000)",
-        "count":     "Dwellings ('000)",
-        "index":     "Index",
-        "mixed":     "Value",
-        "raw":       "Value",
+        "count": "Dwellings ('000)",
+        "index": "Index",
+        "mixed": "Value",
+        "raw": "Value",
     }
     y_title = y_titles.get(value_format or "raw", "Value")
 
@@ -383,20 +397,20 @@ def main():
     fig.update_layout(
         title=dict(
             text=chart_title,
-            font=dict(size=16, family="Calibri, Arial, sans-serif")
+            font=dict(size=16, family="Carlito, Calibri, Arial, sans-serif"),
         ),
         font=dict(family="Calibri, Arial, sans-serif", size=12),
         template="plotly_white",
         hovermode="x unified",
         yaxis=dict(
             title=y_title,
-            gridcolor='#e0e0e0',
+            gridcolor="#e0e0e0",
             range=[y_bottom, y_top] if y_bottom is not None else None,
             dtick=y_dtick,
             tickformat=".1f" if value_format == "percent" else None,
         ),
         xaxis=dict(
-            gridcolor='#e0e0e0',
+            gridcolor="#e0e0e0",
             tickvals=tickvals,
             tickformat="%b-%y",
             tickangle=90,
@@ -407,7 +421,7 @@ def main():
             y=-0.35,
             xanchor="left",
             x=0,
-            font=dict(size=11)
+            font=dict(size=11),
         ),
         margin=dict(t=60, b=120),
         height=540,
@@ -420,32 +434,36 @@ def main():
 
     rows = []
     for col in selected_series:
-        series  = df_view[col].dropna()
+        series = df_view[col].dropna()
         col_fmt = resolve_col_format(value_format, col)
-        label   = resolve_label(col, labels_map)
+        label = resolve_label(col, labels_map)
 
         if len(series) >= 2:
             latest = series.iloc[-1]
-            prev   = series.iloc[-2]
+            prev = series.iloc[-2]
             change = latest - prev
-            pct    = (change / abs(prev) * 100) if prev != 0 else 0.0
-            rows.append({
-                "Series":   label,
-                "Date":     series.index[-1].strftime('%b %Y'),
-                "Latest":   fmt_value(latest, col_fmt),
-                "Previous": fmt_value(prev,   col_fmt),
-                "Change":   fmt_change(change, col_fmt),
-                "% Change": f"{pct:+.2f}%",
-            })
+            pct = (change / abs(prev) * 100) if prev != 0 else 0.0
+            rows.append(
+                {
+                    "Series": label,
+                    "Date": series.index[-1].strftime("%b %Y"),
+                    "Latest": fmt_value(latest, col_fmt),
+                    "Previous": fmt_value(prev, col_fmt),
+                    "Change": fmt_change(change, col_fmt),
+                    "% Change": f"{pct:+.2f}%",
+                }
+            )
         elif len(series) == 1:
-            rows.append({
-                "Series":   label,
-                "Date":     series.index[-1].strftime('%b %Y'),
-                "Latest":   fmt_value(series.iloc[-1], col_fmt),
-                "Previous": "—",
-                "Change":   "—",
-                "% Change": "—",
-            })
+            rows.append(
+                {
+                    "Series": label,
+                    "Date": series.index[-1].strftime("%b %Y"),
+                    "Latest": fmt_value(series.iloc[-1], col_fmt),
+                    "Previous": "—",
+                    "Change": "—",
+                    "% Change": "—",
+                }
+            )
 
     if rows:
         st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
