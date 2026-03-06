@@ -2,107 +2,124 @@
 
 ## What this is
 
-`dashboard.py` is an interactive web dashboard that runs locally in your browser. It reads the CSV files your pipeline already produces in `abs_data_output/` and lets you toggle datasets, series, and date ranges on the fly. No data leaves your machine.
+`dashboard.py` is an interactive web dashboard that reads the CSV files your pipeline
+produces in `abs_data_output/` and lets you toggle datasets, series, and date ranges
+on the fly.
 
-## First-time setup (5 minutes)
+**Two ways to access it:**
+- **Locally** — run on your own machine at http://localhost:8501
+- **Remotely** — deployed publicly on Streamlit Community Cloud (auto-updates when
+  you push new CSVs to GitHub)
 
-### 1. Install the two new packages
+---
 
-Open a terminal in your ABS project folder and run:
+## Local Setup (first time)
+
+### 1. Install dependencies
 
 ```
 pip install streamlit plotly --break-system-packages
 ```
 
-Or if you're using your project's virtual environment:
-
+Or if using the virtual environment:
 ```
+venv\Scripts\activate
 pip install streamlit plotly
 ```
 
-That's it for dependencies. Everything else (pandas, etc.) you already have.
-
-### 2. Verify file structure
-
-Your ABS project folder should look like this:
-
-```
-ABS-Project/
-├── start.py                     # TUI control center
-├── config.py                    # Dataset configuration
-├── download.py                  # Data downloader
-├── generate_charts.py           # Static chart generator
-├── dashboard.py                 # Interactive dashboard
-├── abs_data_output/
-├── abs_charts_output/
-└── ...
-```
-
-The dashboard needs to be in the same folder as `config.py` so it can import your dataset registry for grouping and names.
-
-### 3. Make sure you have data
-
-If you haven't already, run your download script first:
+### 2. Make sure you have data
 
 ```
 python download.py
 ```
 
-You can also use CLI flags to selectively download:
-```
-python s01_readabs_datadownload.py --list          # List available datasets
-python s01_readabs_datadownload.py --freq Monthly  # Download monthly datasets only
-python s01_readabs_datadownload.py --cat 6401.0    # Download specific catalogue
-```
-
 The dashboard reads from `abs_data_output/`. No CSVs = nothing to display.
 
-## Running the dashboard
-
-From your ABS project folder:
+### 3. Launch
 
 ```
 streamlit run dashboard.py
 ```
 
-Your default browser will open automatically at `http://localhost:8501`. If it doesn't, just open that URL manually.
+Browser opens at `http://localhost:8501`. Stop with `Ctrl+C`.
 
-### To stop it
+You can also launch from the TUI:
+```
+python start.py  ->  Option 3
+```
 
-Press `Ctrl+C` in the terminal where it's running.
+---
 
 ## How to use it
 
-- **Left sidebar** has all the controls
-- **Dataset dropdown** picks which ABS release to view (GDP, CPI, Labour Force, etc.)
-- **Table dropdown** appears when a dataset has multiple tables (e.g. CPI has Table 1 and Table 6)
-- **Series checkboxes** toggle individual data series on/off on the chart
-- **Date range slider** adjusts the time window — drag either end
-- **Chart** is interactive: hover for values, click-drag to zoom, double-click to reset
-- **Latest Values table** below the chart shows the most recent data point and period-on-period change
+**Left sidebar:**
+- **Dataset** dropdown — select ABS release (GDP, CPI, Labour Force, etc.)
+- **Table** dropdown — appears when a dataset has multiple tables
+- **Series checkboxes** — toggle individual series on/off
+- **Date range slider** — drag either end to adjust the time window
 
-## Updating data
+**Main panel:**
+- **Interactive chart** — hover for values, click-drag to zoom, double-click to reset
+- **Latest Values table** — most recent data point, previous value, change, and % change
 
-The dashboard reads CSVs live on each interaction. Your workflow is:
+---
 
-1. Run `python download.py` (refreshes the CSVs)
-2. Refresh the dashboard in your browser (or it auto-detects changes)
+## Updating data locally
 
-No need to restart Streamlit.
+```
+python download.py        # refresh CSVs
+# Then refresh browser — dashboard auto-detects changes, no restart needed
+```
+
+---
+
+## Streamlit Community Cloud (remote access)
+
+The dashboard is deployed publicly. Any push to GitHub main automatically redeploys
+the app within ~2 minutes.
+
+**Monthly update workflow:**
+```
+python download.py
+git add abs_data_output/
+git commit -m "Data update - Mar 2026"
+git push origin main
+```
+
+### Re-deploying from scratch (if needed)
+
+1. Go to share.streamlit.io and sign in with GitHub
+2. Click New app
+3. Repository: `AnotherDilettante/ABS-Python-Scripts`
+4. Branch: `main`
+5. Main file path: `dashboard.py`
+6. Click Deploy
+
+### Font on Streamlit Cloud
+
+Calibri is not available on the Ubuntu Linux environment Streamlit Cloud uses.
+`packages.txt` (in the project root) installs `fonts-crosextra-carlito`, which is
+metrically identical to Calibri. The dashboard font stack lists Carlito first so it
+is picked up automatically.
+
+---
 
 ## Troubleshooting
 
 **"No data found" error**
-→ Your `abs_data_output/` folder is empty. Run download.py first.
+→ `abs_data_output/` is empty. Run `python download.py` first.
 
 **"ModuleNotFoundError: No module named 'streamlit'"**
-→ You installed it in a different Python environment. Make sure you're using the same Python/pip that has your other ABS packages.
+→ Installed in a different Python environment. Activate venv or reinstall.
 
 **Browser doesn't open automatically**
-→ Open `http://localhost:8501` manually. Completely normal on some systems.
+→ Open `http://localhost:8501` manually.
 
 **Port 8501 already in use**
-→ Another Streamlit instance is running. Either stop it or run with a different port:
+→ Another Streamlit instance is running. Stop it, or use a different port:
 ```
 streamlit run dashboard.py --server.port 8502
 ```
+
+**Streamlit Cloud shows old data**
+→ CSVs haven't been pushed to GitHub. Run the monthly update workflow above.
