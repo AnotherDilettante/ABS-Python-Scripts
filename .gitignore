@@ -17,3 +17,12 @@ guidance/
 # Ignore system files
 .DS_Store
 Thumbs.db
+
+# Ignore Claude files
+CLAUDE.md
+DASHBOARD_SETUP.md
+SKILL.md
+Summary.md
+update_skill.py
+check_fonts.py
+.claude/
